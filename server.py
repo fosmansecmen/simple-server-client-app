@@ -1,4 +1,4 @@
-import socket, threading
+import socket, threading, json
 from _thread import *
 from product import Product
 from basket import Basket
@@ -13,42 +13,45 @@ baskets = []
 
 
 # print_lock = threading.Lock()
-port = 12359
+port = 12363
 
-def remove_basket(basket_name):
+# for debugging purposes
+def get_basket_names():
+    basket_names = ""
     for basket in baskets:
-        if basket.name == basket_name:
-            baskets.remove(basket)
+        basket_names += basket.name + ', '
 
-def checkout(basket_name):
+    return basket_names[:-1]
+
+# for debugging purposes
+def product_codes():
+    product_codes = ""
+    for product in products:
+        product_codes += product.code + ', '
+
+    return product_codes[:-1]
+
+# check basket name if it exists, and return the instance, else return None
+def get_basket(basket_name):
     for basket in baskets:
-        if basket.name == basket_name:
-            txt = ''
-            total = 0
-            for product in basket.products:
-                txt += product.code + ','
-                total += product.price
-
-            info = {'text': txt[:-1], 'amount': str(total)+'€'}
-            return info
-
+        if basket.name.lower() == basket_name.lower():
+            return basket
     return None
 
-def add_product_to_basket(option, basket_name):
-    if option=='pen':
-        product = pen
-    elif option=='tshirt':
-        product = tshirt
-    elif option=='mug':
-        product = mug
+# check product name if it exists, and return the instance, else return None
+def get_product(product_name):
+    for product in products:
+        if product.code.lower() == product_name.lower():
+            return product
+    return None
+"""
+This is to send the same message to the client and print on server's debugging log
+"""
+def print_message(message, client):
+    client.send(message.encode('ascii'))
+    print(message)
 
-    for basket in baskets:
-        if basket.name == basket_name:
-            basket.add_product(product)
-            print('basket:', basket.name)
-            print('products:', basket.print_products())
-
-
+# validate input and handle it
 def handle_input(c, data):
     if data=='help':
         txt = """Available commands:
@@ -62,30 +65,67 @@ def handle_input(c, data):
         """
         c.send(txt.encode('ascii'))
     elif 'create basket' in data:
-        basket_name = data.split(" ")[2]
-        c.send(('Creating basket with name ' + basket_name).encode('ascii'))
-        basket_name = Basket(basket_name)
-        baskets.append(basket_name)
-        print('Basket is created')
-        print('baskets:', baskets)
+        if len(data.split(" "))<3:
+            print_message('Missing argument, please check it', c)
+        else:
+            basket_name = data.split(" ")[2]
+            # get the basket instance
+            basket = get_basket(basket_name)
+            # check if it already exists
+            if not basket==None:
+                print_message('A basket with this name already exists.', c)
+            else:   # if not, create it
+                new_basket = Basket(basket_name)
+                baskets.append(new_basket)
+                print_message('Basket is created. Baskets: ' + get_basket_names(), c)
     elif 'remove basket' in data:
-        basket_name = data.split(" ")[2]
-        c.send(('Removing basket with name ' + basket_name).encode('ascii'))
-        remove_basket(basket_name)
-        print('Basket is removed')
-        print('baskets:', baskets)
+        if len(data.split(" "))<3:
+            print_message('Missing argument, please check it', c)
+        else:
+            basket_name = data.split(" ")[2]
+            # get the basket instance
+            basket = get_basket(basket_name)
+            # check if it exists
+            if basket==None:
+                print_message('Basket does not exist. Baskets: ' + get_basket_names(), c)
+            else:
+                baskets.remove(basket)
+                del basket
+                print_message('Basket is removed. Baskets: ' + get_basket_names(), c)
     elif 'add product' in data:
-        data = data.split(" ")
-        product = data[2]
-        basket_name = data[3]
-        c.send(('Adding ' + product + ' to ' + basket_name).encode('ascii'))
-        add_product_to_basket(product, basket_name)
-        print(product + ' is added to the ' + basket_name)
+        if len(data.split(" "))<4:
+            print_message('Missing argument, please check it', c)
+        else:
+            data = data.split(" ")
+            product_name = data[2]
+            # get the product instance
+            product = get_product(product_name)
+            if product==None:
+                # TO BE TESTED
+                print_message('Product does not exist. Products: ' + product_codes(), c)
+            else:
+                basket_name = data[3]
+                # get the basket instance
+                basket = get_basket(basket_name)
+                # check if it exists
+                if basket==None:
+                    print_message('Basket does not exist. Baskets: ' + get_basket_names(), c)
+                else:
+                    basket.add_product(product)
+                    print_message(product_name + ' is added to the ' + basket_name, c)
     elif 'checkout' in data:
-        basket_name = data.split(" ")[1]
-        c.send(('Gathering checkout info for ' + basket_name).encode('ascii'))
-        info = checkout(basket_name)
-        print('checkout:', info)
+        if len(data.split(" "))<2:
+            print_message('Missing argument, please check it', c)
+        else:
+            basket_name = data.split(" ")[1]
+            # get the basket instance
+            basket = get_basket(basket_name)
+            # check if it exists
+            if basket==None:
+                print_message('Basket does not exist. Baskets: ' + get_basket_names(), c)
+            else:
+                info = basket.checkout()
+                print_message(json.dumps(info), c)
     else:
         c.send('This is beyond my knowledge'.encode('ascii'))
 
