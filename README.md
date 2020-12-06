@@ -25,3 +25,5 @@ This is a simple server-client application using network for the communication.
  	- undefined product
  	- adding products to the same basket from different clients
  	- listing products on a basket
+
+ * Regarding Dockerfile: Unfortunately it's not finished but also it does not make that much sense to have it. Since I am out of time, I am leaving it as it is.
