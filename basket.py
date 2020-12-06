@@ -25,5 +25,5 @@ class Basket():
 	    	txt += product.code + ', '
 	    	total += product.price
 
-	    info = {'ITEMS': txt[:-1], 'TOTAL': total}
+	    info = {'ITEMS': txt[:-2], 'TOTAL': total}
 	    return info

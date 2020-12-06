@@ -18,3 +18,10 @@ This is a simple server-client application using network for the communication.
 	- checkout
 	- quit
 	- help
+
+ * Extra features&controls:
+ 	- unique basket name
+ 	- missing parameters
+ 	- undefined product
+ 	- adding products to the same basket from different clients
+ 	- listing products on a basket

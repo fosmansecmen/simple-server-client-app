@@ -125,7 +125,8 @@ def handle_input(c, data):
                 print_message('Basket does not exist. Baskets: ' + get_basket_names(), c)
             else:
                 info = basket.checkout()
-                print_message(json.dumps(info), c)
+                info = '\nItems: ' + info.get('ITEMS') + '\n' + 'Total: ' + str(info.get('TOTAL'))
+                print_message(info, c)
     else:
         c.send('This is beyond my knowledge'.encode('ascii'))
 
